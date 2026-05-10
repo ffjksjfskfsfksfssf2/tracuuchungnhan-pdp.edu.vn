@@ -7,7 +7,8 @@ import { Loader2Icon, LogInIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn, initialLoginState } from "./actions";
+import { signIn } from "./actions";
+import { initialLoginState } from "./types";
 
 export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const [state, formAction] = useActionState(signIn, initialLoginState);

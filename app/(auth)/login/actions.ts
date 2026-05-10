@@ -5,15 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loginSchema } from "@/lib/validation/auth";
 
-export type LoginState = {
-  formError: string | null;
-  fieldErrors: { email?: string; password?: string };
-};
-
-export const initialLoginState: LoginState = {
-  formError: null,
-  fieldErrors: {},
-};
+import type { LoginState } from "./types";
 
 const SAFE_REDIRECT_PREFIX = "/admin";
 const DEFAULT_AFTER_LOGIN = "/admin";
