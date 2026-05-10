@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AwardIcon } from "lucide-react";
 
 import { CertificateStatusBadge } from "@/components/admin/certificate-status-badge";
 import {
@@ -35,10 +36,14 @@ export function CertificatesTable({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="border-border/60 rounded-lg border border-dashed p-8 text-center">
-        <p className="text-muted-foreground text-sm">
-          Chưa có chứng nhận nào. Sử dụng trình sinh hàng loạt để tạo chứng nhận
-          đầu tiên.
+      <div className="border-border/60 flex flex-col items-center gap-3 rounded-lg border border-dashed p-10 text-center">
+        <div className="bg-pdp-orange/10 text-pdp-orange flex size-12 items-center justify-center rounded-full">
+          <AwardIcon className="size-5" aria-hidden />
+        </div>
+        <p className="font-semibold">Chưa có chứng nhận nào</p>
+        <p className="text-muted-foreground max-w-md text-sm">
+          Kết quả trống với bộ lọc hiện tại. Tử từ xóa bộ lọc, hoặc mở một chiến
+          dịch và dùng trình sinh hàng loạt để tạo chứng nhận đầu tiên.
         </p>
       </div>
     );

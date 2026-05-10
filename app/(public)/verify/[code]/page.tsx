@@ -1,4 +1,11 @@
 import Link from "next/link";
+import {
+  CheckCircle2Icon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  ShieldAlertIcon,
+  ShieldCheckIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,74 +45,150 @@ export default async function VerifyPage({ params }: { params: Params }) {
     }
   }
 
+  const tone = result ? "success" : "error";
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-12">
-      <p className="text-muted-foreground text-xs tracking-wide uppercase">
-        Xác minh chứng nhận
+      <p
+        className={`text-xs font-semibold tracking-wide uppercase ${
+          tone === "success" ? "text-pdp-orange" : "text-muted-foreground"
+        }`}
+      >
+        Trang xác minh
       </p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight">
-        {result ? "Chứng nhận hợp lệ" : "Không tìm thấy chứng nhận"}
+      <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+        {result
+          ? "Chứng nhận hợp lệ"
+          : envMissing
+            ? "Hệ thống chưa sẵn sàng"
+            : "Không tìm thấy chứng nhận"}
       </h1>
 
-      {envMissing ? (
-        <p className="text-muted-foreground mt-4">
-          Hệ thống chưa được cấu hình. Vui lòng quay lại sau.
-        </p>
-      ) : null}
-
-      {result ? (
-        <Card className="border-pdp-orange/30 mt-6">
-          <CardContent className="space-y-3 p-6 text-sm">
-            <Row label="Họ và tên" value={result.full_name} />
-            <Row label="MSSV" value={result.student_code} />
-            <Row
-              label="Ngày cấp"
-              value={new Date(result.issue_date).toLocaleDateString("vi-VN")}
-            />
-            <Row
-              label="Chương trình"
-              value={result.certificate_title ?? result.campaign_title}
-            />
-            {result.signer_name ? (
-              <Row
-                label="Đơn vị cấp"
-                value={[result.signer_name, result.signer_title]
-                  .filter(Boolean)
-                  .join(" · ")}
-              />
-            ) : null}
-            <Row
-              label="Mã xác thực"
-              value={
-                <code className="bg-muted rounded px-1.5 py-0.5 text-xs">
-                  {result.verification_code}
-                </code>
-              }
-            />
-            {result.drive_view_url ? (
-              <div className="pt-2">
-                <Button asChild variant="outline" size="sm">
-                  <a
-                    href={result.drive_view_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Xem chứng nhận
-                  </a>
-                </Button>
+      <div className="mt-6">
+        {envMissing ? (
+          <Card className="border-border/60">
+            <CardContent className="space-y-3 p-6">
+              <div className="bg-muted text-muted-foreground inline-flex size-12 items-center justify-center rounded-full">
+                <ShieldAlertIcon className="size-5" aria-hidden />
               </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      ) : (
-        !envMissing && (
-          <p className="text-muted-foreground mt-4">
-            Mã <code>{code}</code> không khớp với chứng nhận nào trong hệ thống.
-          </p>
-        )
-      )}
+              <p className="text-muted-foreground">
+                Hệ thống chưa được cấu hình. Vui lòng quay lại sau.
+              </p>
+            </CardContent>
+          </Card>
+        ) : result ? (
+          <Card className="border-pdp-orange/30 ring-pdp-orange/5 overflow-hidden ring-1">
+            {/* Trust banner */}
+            <div className="border-pdp-orange/20 bg-pdp-orange/5 flex items-center gap-2 border-b px-6 py-3">
+              <CheckCircle2Icon
+                className="text-pdp-orange size-5"
+                aria-hidden
+              />
+              <span className="text-pdp-orange text-sm font-semibold">
+                Đã xác minh thành công · Chứng nhận chính thức của PDP
+              </span>
+            </div>
+            <CardContent className="space-y-5 p-6">
+              <div>
+                <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                  Họ và tên
+                </p>
+                <p className="mt-0.5 text-2xl leading-tight font-semibold">
+                  {result.full_name}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <Field label="MSSV" value={result.student_code} />
+                <Field
+                  label="Ngày cấp"
+                  value={new Date(result.issue_date).toLocaleDateString(
+                    "vi-VN",
+                  )}
+                />
+                <Field
+                  label="Chương trình"
+                  value={result.certificate_title ?? result.campaign_title}
+                  span={2}
+                />
+                {result.signer_name ? (
+                  <Field
+                    label="Đơn vị cấp"
+                    value={[result.signer_name, result.signer_title]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    span={2}
+                  />
+                ) : null}
+                <Field
+                  label="Mã xác thực"
+                  value={
+                    <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
+                      {result.verification_code}
+                    </code>
+                  }
+                  span={2}
+                />
+              </div>
 
-      <div className="mt-8">
+              {result.drive_view_url ? (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button asChild variant="outline">
+                    <a
+                      href={result.drive_view_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLinkIcon aria-hidden />
+                      Xem chứng nhận
+                    </a>
+                  </Button>
+                  <Button
+                    asChild
+                    className="bg-pdp-orange hover:bg-pdp-orange/90 text-white"
+                  >
+                    <a
+                      href={result.drive_view_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <DownloadIcon aria-hidden />
+                      Tải về
+                    </a>
+                  </Button>
+                </div>
+              ) : null}
+
+              <p className="text-muted-foreground border-border/60 border-t pt-3 text-xs">
+                <ShieldCheckIcon className="mr-1 inline size-3.5" aria-hidden />
+                Trang này được sinh ra từ mã xác thực duy nhất ghi trên chứng
+                nhận. Mọi chứng nhận hợp lệ đều có một mã xác thực riêng.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-border/60">
+            <CardContent className="space-y-3 p-6">
+              <div className="bg-muted text-muted-foreground inline-flex size-12 items-center justify-center rounded-full">
+                <ShieldAlertIcon className="size-5" aria-hidden />
+              </div>
+              <p>
+                Mã{" "}
+                <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
+                  {code}
+                </code>{" "}
+                không khớp với chứng nhận nào trong hệ thống.
+              </p>
+              <p className="text-muted-foreground text-sm">
+                Có thể chứng nhận chưa được phát hành, đã bị huỷ, hoặc mã đã bị
+                nhập sai. Vui lòng kiểm tra lại trên giấy chứng nhận hoặc liên
+                hệ phòng PDP.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="mt-8 flex flex-wrap gap-2">
         <Button asChild variant="outline" size="sm">
           <Link href="/">← Trở về trang tra cứu</Link>
         </Button>
@@ -114,13 +197,21 @@ export default async function VerifyPage({ params }: { params: Params }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({
+  label,
+  value,
+  span,
+}: {
+  label: string;
+  value: React.ReactNode;
+  span?: 2;
+}) {
   return (
-    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
-      <span className="text-muted-foreground sm:w-32 sm:flex-none">
+    <div className={span === 2 ? "col-span-2" : undefined}>
+      <p className="text-muted-foreground text-xs tracking-wide uppercase">
         {label}
-      </span>
-      <span className="font-medium">{value}</span>
+      </p>
+      <p className="mt-0.5">{value}</p>
     </div>
   );
 }

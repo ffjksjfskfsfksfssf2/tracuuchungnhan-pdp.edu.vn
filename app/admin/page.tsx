@@ -1,65 +1,173 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import Link from "next/link";
+import {
+  AwardIcon,
+  FolderKanbanIcon,
+  PlusIcon,
+  RocketIcon,
+  SparklesIcon,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Tổng quan" };
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const supabase = await createClient();
+
+  // Lightweight aggregate counts. We don't need the rows themselves —
+  // `head: true, count: 'exact'` returns just a count without payload.
+  const [
+    { count: campaignTotal },
+    { count: campaignPublished },
+    { count: certificateTotal },
+    { count: certificatePublished },
+  ] = await Promise.all([
+    supabase.from("campaigns").select("id", { count: "exact", head: true }),
+    supabase
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published"),
+    supabase.from("certificates").select("id", { count: "exact", head: true }),
+    supabase
+      .from("certificates")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published"),
+  ]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tổng quan</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Khu vực dành cho cán bộ Phòng Phát triển Sinh viên — quản lý chiến
-          dịch, nhập danh sách và sinh chứng nhận hàng loạt.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Tổng quan</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Khu vực dành cho cán bộ Phòng Phát triển Sinh viên — quản lý chiến
+            dịch, nhập danh sách và sinh chứng nhận hàng loạt.
+          </p>
+        </div>
+        <Button
+          asChild
+          className="bg-pdp-orange hover:bg-pdp-orange/90 text-white"
+        >
+          <Link href="/admin/campaigns/new">
+            <PlusIcon aria-hidden />
+            Tạo chiến dịch mới
+          </Link>
+        </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Placeholder
-          title="Chiến dịch"
-          description="Tạo và quản lý các đợt cấp chứng nhận."
-          milestone="M5"
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Tổng chiến dịch"
+          value={campaignTotal ?? 0}
+          subtext={`${campaignPublished ?? 0} đã phát hành`}
+          icon={<FolderKanbanIcon className="size-4" />}
+          href="/admin/campaigns"
         />
-        <Placeholder
-          title="Nhập danh sách Excel"
-          description="Tải lên file Excel của khoá học, hệ thống sẽ tự kiểm tra dữ liệu."
-          milestone="M6"
+        <StatCard
+          label="Tổng chứng nhận"
+          value={certificateTotal ?? 0}
+          subtext={`${certificatePublished ?? 0} đã phát hành`}
+          icon={<AwardIcon className="size-4" />}
+          href="/admin/certificates"
         />
-        <Placeholder
-          title="Sinh chứng nhận hàng loạt"
-          description="Sinh PNG ngay trong trình duyệt từ template và Excel."
-          milestone="M7"
+        <StatCard
+          label="Tỷ lệ phát hành"
+          value={
+            certificateTotal && certificateTotal > 0
+              ? `${Math.round(
+                  ((certificatePublished ?? 0) / certificateTotal) * 100,
+                )}%`
+              : "—"
+          }
+          subtext="trên tổng số đã sinh"
+          icon={<RocketIcon className="size-4" />}
         />
-        <Placeholder
-          title="Đồng bộ Google Drive"
-          description="Khớp file PNG với link Drive và lưu metadata vào Supabase."
-          milestone="M9"
+        <StatCard
+          label="Drive sync"
+          value="MVP"
+          subtext="Đợi M9 hoặc M10"
+          icon={<SparklesIcon className="size-4" />}
+          muted
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ActionCard
+          title="Bắt đầu một đợt cấp chứng nhận"
+          description="Tạo chiến dịch mới, nhập danh sách Excel, sinh PNG hàng loạt và phát hành để sinh viên tra cứu."
+          ctaLabel="Đến quản lý chiến dịch"
+          href="/admin/campaigns"
+        />
+        <ActionCard
+          title="Tra cứu chứng nhận đã sinh"
+          description="Tìm theo MSSV, tên (kể cả không dấu), hoặc mã xác minh. Lọc theo chiến dịch và trạng thái."
+          ctaLabel="Mở bảng chứng nhận"
+          href="/admin/certificates"
         />
       </div>
     </div>
   );
 }
 
-function Placeholder({
+function StatCard({
+  label,
+  value,
+  subtext,
+  icon,
+  href,
+  muted,
+}: {
+  label: string;
+  value: number | string;
+  subtext: string;
+  icon: React.ReactNode;
+  href?: string;
+  muted?: boolean;
+}) {
+  const display =
+    typeof value === "number" ? value.toLocaleString("vi-VN") : value;
+  const inner = (
+    <Card
+      className={`${muted ? "bg-muted/40" : ""} hover:border-pdp-orange/40 h-full transition-colors`}
+    >
+      <CardContent className="space-y-1.5 p-5">
+        <div className="text-muted-foreground flex items-center justify-between text-xs font-medium tracking-wide uppercase">
+          <span>{label}</span>
+          <span
+            className={`bg-pdp-orange/10 text-pdp-orange inline-flex size-7 items-center justify-center rounded-md`}
+          >
+            {icon}
+          </span>
+        </div>
+        <p className="text-2xl font-bold">{display}</p>
+        <p className="text-muted-foreground text-xs">{subtext}</p>
+      </CardContent>
+    </Card>
+  );
+  return href ? <Link href={href}>{inner}</Link> : inner;
+}
+
+function ActionCard({
   title,
   description,
-  milestone,
+  ctaLabel,
+  href,
 }: {
   title: string;
   description: string;
-  milestone: string;
+  ctaLabel: string;
+  href: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">{title}</h2>
-          <span className="text-muted-foreground bg-muted rounded-md px-1.5 py-0.5 text-xs font-medium">
-            {milestone}
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <Card className="hover:border-pdp-orange/40 transition-colors">
+      <CardContent className="space-y-3 p-6">
+        <h2 className="font-semibold">{title}</h2>
         <p className="text-muted-foreground text-sm">{description}</p>
+        <Button asChild variant="outline" size="sm">
+          <Link href={href}>{ctaLabel} →</Link>
+        </Button>
       </CardContent>
     </Card>
   );
