@@ -1,3 +1,4 @@
+import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
 export default async function AdminLayout({
@@ -5,6 +6,6 @@ export default async function AdminLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   // Belt-and-braces: proxy.ts already redirects unauthenticated users; this
   // also blocks authenticated-but-non-admin users.
-  await requireAdmin();
-  return <>{children}</>;
+  const { email } = await requireAdmin();
+  return <AdminShell email={email}>{children}</AdminShell>;
 }
