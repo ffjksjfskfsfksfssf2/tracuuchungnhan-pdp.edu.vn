@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  AwardIcon,
   ChevronLeftIcon,
   FileSpreadsheetIcon,
   SparklesIcon,
@@ -9,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CampaignStatusBadge } from "@/components/admin/campaign-status-badge";
+import { PublishButton } from "@/components/admin/publish-button";
 import { createClient } from "@/lib/supabase/server";
 import { CampaignEditForm } from "./edit-form";
 
@@ -53,6 +55,13 @@ export default async function CampaignDetailPage({
   }
   if (!campaign) notFound();
 
+  // Lightweight count of certificates for this campaign so the admin sees
+  // at-a-glance how many rows have been persisted.
+  const { count: certificateCount } = await supabase
+    .from("certificates")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaign.id);
+
   return (
     <div className="space-y-6">
       <div>
@@ -75,7 +84,7 @@ export default async function CampaignDetailPage({
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Button asChild variant="outline" className="justify-start">
           <Link href={`/admin/campaigns/${campaign.id}/import`}>
             <FileSpreadsheetIcon aria-hidden />
@@ -91,6 +100,17 @@ export default async function CampaignDetailPage({
             Sinh chứng nhận hàng loạt
           </Link>
         </Button>
+        <Button asChild variant="outline" className="justify-start">
+          <Link href={`/admin/campaigns/${campaign.id}/certificates`}>
+            <AwardIcon aria-hidden />
+            Chứng nhận đã lưu ({(certificateCount ?? 0).toLocaleString("vi-VN")}
+            )
+          </Link>
+        </Button>
+        <PublishButton
+          campaignId={campaign.id}
+          isPublished={campaign.status === "published"}
+        />
       </div>
 
       <Card>

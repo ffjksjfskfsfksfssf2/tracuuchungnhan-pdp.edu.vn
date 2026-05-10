@@ -53,7 +53,11 @@ import {
   type ValidationReport,
   validateRows,
 } from "@/lib/validation/student-row";
-import { saveTemplateConfig } from "@/app/admin/campaigns/[campaignId]/generator/actions";
+import {
+  saveCertificateBatch,
+  saveTemplateConfig,
+} from "@/app/admin/campaigns/[campaignId]/generator/actions";
+import type { CertificateRecord } from "@/lib/validation/certificate-record";
 
 const FIELD_LABELS: Record<CanonicalField, string> = {
   student_code: "MSSV (bắt buộc)",
@@ -243,8 +247,29 @@ export function GeneratorWizard({
         `Đã sinh ${certificates.length.toLocaleString("vi-VN")} chứng nhận. Đang đóng gói ZIP...`,
       );
       const zip = await buildCertificateZip(certificates);
+      const issueDateIso = new Date().toISOString().slice(0, 10);
       downloadBlob(zip, `${campaignSlug}-certificates.zip`);
       toast.success("Đã tải xuống ZIP.");
+
+      // Persist metadata to Supabase so admins can search/publish later.
+      const records: CertificateRecord[] = certificates.map((c) => ({
+        student_code: c.student_code,
+        full_name: c.full_name,
+        class_name: c.class_name ?? null,
+        issue_date: issueDateIso,
+        file_name: c.filename,
+        verification_code: c.verification_code,
+        qr_payload: c.qr_payload,
+        warnings: c.warnings,
+      }));
+      const saveResult = await saveCertificateBatch(campaignId, records);
+      if (saveResult.ok) {
+        toast.success(
+          `Đã lưu ${saveResult.saved.toLocaleString("vi-VN")} chứng nhận vào cơ sở dữ liệu.`,
+        );
+      } else {
+        toast.error(`Không lưu được metadata: ${saveResult.error}`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Lỗi khi sinh chứng nhận.");
     } finally {
