@@ -4,6 +4,7 @@ import {
   AwardIcon,
   ChevronLeftIcon,
   FileSpreadsheetIcon,
+  LinkIcon,
   SparklesIcon,
 } from "lucide-react";
 
@@ -84,7 +85,7 @@ export default async function CampaignDetailPage({
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Button asChild variant="outline" className="justify-start">
           <Link href={`/admin/campaigns/${campaign.id}/import`}>
             <FileSpreadsheetIcon aria-hidden />
@@ -101,16 +102,24 @@ export default async function CampaignDetailPage({
           </Link>
         </Button>
         <Button asChild variant="outline" className="justify-start">
+          <Link href={`/admin/campaigns/${campaign.id}/drive-link`}>
+            <LinkIcon aria-hidden />
+            Liên kết Drive (manifest)
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="justify-start">
           <Link href={`/admin/campaigns/${campaign.id}/certificates`}>
             <AwardIcon aria-hidden />
             Chứng nhận đã lưu ({(certificateCount ?? 0).toLocaleString("vi-VN")}
             )
           </Link>
         </Button>
-        <PublishButton
-          campaignId={campaign.id}
-          isPublished={campaign.status === "published"}
-        />
+        <div className="sm:col-span-2 lg:col-span-1 lg:justify-self-end">
+          <PublishButton
+            campaignId={campaign.id}
+            isPublished={campaign.status === "published"}
+          />
+        </div>
       </div>
 
       <Card>
