@@ -55,9 +55,15 @@ import {
 } from "@/lib/validation/student-row";
 import {
   saveCertificateBatch,
+  saveDriveLinksForCertificates,
   saveTemplateConfig,
+  type DriveLinkUpdate,
 } from "@/app/admin/campaigns/[campaignId]/generator/actions";
 import type { CertificateRecord } from "@/lib/validation/certificate-record";
+import {
+  DriveUploadPanel,
+  type DriveUploadConfig,
+} from "@/components/admin/drive-upload-panel";
 
 const FIELD_LABELS: Record<CanonicalField, string> = {
   student_code: "MSSV (bắt buộc)",
@@ -96,6 +102,23 @@ export function GeneratorWizard({
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const cancelRef = useRef(false);
+
+  // Last successful batch — kept around so the admin can choose to upload
+  // to Drive after the fact, even if they generated without being signed in
+  // to Google.
+  const [lastBatch, setLastBatch] = useState<GeneratedCertificate[]>([]);
+
+  // M10: Drive direct-upload state.
+  const [driveConfig, setDriveConfig] = useState<DriveUploadConfig>({
+    auth: { kind: "signed_out" },
+    folderId: null,
+  });
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    done: number;
+    total: number;
+    failed: number;
+  } | null>(null);
 
   /* ---------- Template upload ---------- */
 
@@ -251,6 +274,10 @@ export function GeneratorWizard({
       downloadBlob(zip, `${campaignSlug}-certificates.zip`);
       toast.success("Đã tải xuống ZIP.");
 
+      // Stash the batch so the M10 panel can offer Drive upload afterwards.
+      setLastBatch(certificates);
+      setUploadProgress(null);
+
       // Persist metadata to Supabase so admins can search/publish later.
       const records: CertificateRecord[] = certificates.map((c) => ({
         student_code: c.student_code,
@@ -279,6 +306,90 @@ export function GeneratorWizard({
 
   const cancelGeneration = () => {
     cancelRef.current = true;
+  };
+
+  /* ---------- M10: Drive upload ---------- */
+
+  const uploadBatchToDrive = async () => {
+    if (driveConfig.auth.kind !== "signed_in") {
+      toast.error("Hãy đăng nhập Google trước khi upload.");
+      return;
+    }
+    if (lastBatch.length === 0) {
+      toast.info("Chưa có chứng nhận nào trong bộ nhớ để upload.");
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress({ done: 0, total: lastBatch.length, failed: 0 });
+
+    // Lazy-import to keep the GIS-dependent code out of the initial bundle.
+    const { uploadFileToDrive, makeDriveFilePublic } =
+      await import("@/lib/google-drive/upload");
+
+    const accessToken = driveConfig.auth.accessToken;
+    const folderId = driveConfig.folderId ?? undefined;
+
+    const successUpdates: DriveLinkUpdate[] = [];
+    let failed = 0;
+
+    for (let i = 0; i < lastBatch.length; i++) {
+      const cert = lastBatch[i];
+      try {
+        const result = await uploadFileToDrive(
+          accessToken,
+          cert.blob,
+          cert.filename,
+          folderId,
+        );
+        // Best-effort public share — if it fails (rare; usually a folder
+        // permission conflict), continue but log a warning.
+        try {
+          await makeDriveFilePublic(accessToken, result.fileId);
+        } catch (permErr) {
+          console.warn("makeDriveFilePublic failed", permErr);
+        }
+        successUpdates.push({
+          student_code: cert.student_code,
+          drive_file_id: result.fileId,
+          drive_view_url: result.viewUrl,
+          drive_download_url: result.downloadUrl,
+        });
+      } catch (e) {
+        failed += 1;
+        console.error("Drive upload failed for", cert.filename, e);
+      }
+      setUploadProgress({
+        done: i + 1,
+        total: lastBatch.length,
+        failed,
+      });
+      // Yield to the event loop every few uploads.
+      if (i % 3 === 2) {
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+
+    // Persist successful uploads' Drive links back to Supabase.
+    if (successUpdates.length > 0) {
+      const res = await saveDriveLinksForCertificates(
+        campaignId,
+        successUpdates,
+      );
+      if (res.ok) {
+        toast.success(
+          `Upload xong: ${successUpdates.length.toLocaleString("vi-VN")} thành công${
+            failed > 0 ? `, ${failed} lỗi` : ""
+          }. Đã gắn link Drive vào cơ sở dữ liệu.`,
+        );
+      } else {
+        toast.error(`Upload xong nhưng không lưu được link: ${res.error}`);
+      }
+    } else {
+      toast.error("Không upload được file nào.");
+    }
+
+    setUploading(false);
   };
 
   /* ---------- Render ---------- */
@@ -423,6 +534,20 @@ export function GeneratorWizard({
           validCount={validCount}
           onStart={generateAll}
           onCancel={cancelGeneration}
+        />
+      </SectionCard>
+
+      <SectionCard
+        title="6. Tải lên Google Drive (tự động)"
+        subtitle="Đăng nhập Google và chọn folder để upload thẳng PNG đến Drive mà không cần manifest thủ công."
+      >
+        <DriveUploadPanel
+          config={driveConfig}
+          onConfigChange={setDriveConfig}
+          totalToUpload={lastBatch.length}
+          uploadProgress={uploadProgress}
+          uploading={uploading}
+          onStartUpload={uploadBatchToDrive}
         />
       </SectionCard>
     </div>
