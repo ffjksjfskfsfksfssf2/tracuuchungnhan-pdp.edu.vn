@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeftIcon, FileSpreadsheetIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  FileSpreadsheetIcon,
+  SparklesIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -76,6 +80,15 @@ export default async function CampaignDetailPage({
           <Link href={`/admin/campaigns/${campaign.id}/import`}>
             <FileSpreadsheetIcon aria-hidden />
             Nhập danh sách Excel
+          </Link>
+        </Button>
+        <Button
+          asChild
+          className="bg-pdp-orange hover:bg-pdp-orange/90 justify-start text-white"
+        >
+          <Link href={`/admin/campaigns/${campaign.id}/generator`}>
+            <SparklesIcon aria-hidden />
+            Sinh chứng nhận hàng loạt
           </Link>
         </Button>
       </div>
