@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeftIcon } from "lucide-react";
+import { ChevronLeftIcon, FileSpreadsheetIcon } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CampaignStatusBadge } from "@/components/admin/campaign-status-badge";
 import { createClient } from "@/lib/supabase/server";
@@ -68,6 +69,15 @@ export default async function CampaignDetailPage({
           Tạo lúc {formatDate(campaign.created_at)} · Cập nhật{" "}
           {formatDate(campaign.updated_at)}
         </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Button asChild variant="outline" className="justify-start">
+          <Link href={`/admin/campaigns/${campaign.id}/import`}>
+            <FileSpreadsheetIcon aria-hidden />
+            Nhập danh sách Excel
+          </Link>
+        </Button>
       </div>
 
       <Card>
