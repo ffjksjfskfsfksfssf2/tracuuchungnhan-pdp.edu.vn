@@ -42,6 +42,12 @@ export const certificateRecordSchema = z.object({
     .regex(/^[A-Z0-9]+$/, "Mã xác minh không hợp lệ."),
   qr_payload: z.string().min(1).max(500),
   warnings: z.array(z.string()).optional().default([]),
+  // Optional Drive metadata produced by the M10 OAuth uploader. When
+  // absent (manual workflow), the Drive-link wizard (M9) can fill these
+  // fields in later via a manifest paste.
+  drive_file_id: z.string().min(1).max(128).nullable().optional(),
+  drive_view_url: z.string().url().max(500).nullable().optional(),
+  drive_download_url: z.string().url().max(500).nullable().optional(),
 });
 
 export const certificateBatchSchema = z
